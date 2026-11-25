@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 
@@ -136,6 +137,10 @@ async def lifespan(app: FastAPI):
     yield
     stop.set()
     task.cancel()
+    for w in list(WORKERS.values()):
+        if hasattr(w, "stop"):
+            w.stop()
+    WORKERS.clear()
 
 
 def create_app() -> FastAPI:
@@ -165,6 +170,12 @@ def create_app() -> FastAPI:
         "/snapshots", StaticFiles(directory=snapshots_dir), name="snapshots"
     )
     if web_dir.exists():
+        m_page = web_dir / "m.html"
+        if m_page.exists():
+            @app.get("/m", include_in_schema=False)
+            def mobile_page():
+                return FileResponse(m_page)
+
         app.mount("/", StaticFiles(directory=web_dir, html=True), name="web")
     return app
 

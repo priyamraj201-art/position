@@ -112,6 +112,12 @@ async def pov_ws(websocket: WebSocket):
             frame = await websocket.receive_bytes()
         except Exception:  # noqa: BLE001 - client disconnect ends the socket
             return
+        from app.main import WORKERS
+        from app.vision.sources import PushSource
+
+        pov_worker = WORKERS.get("CAM-POV")
+        if pov_worker is not None and isinstance(getattr(pov_worker, "source", None), PushSource):
+            pov_worker.source.push_jpeg(frame)
         await websocket.send_json(_decode_pov_frame(frame))
 
 

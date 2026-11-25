@@ -128,7 +128,8 @@ async function initCameras() {
   try {
     const res = await fetch(`${API_BASE}/api/cameras`);
     if (res.ok) {
-      appState.cameras = await res.json();
+      const payload = await res.json();
+      appState.cameras = Array.isArray(payload) ? payload : (payload.cameras || MOCK_CAMERAS);
     } else {
       appState.cameras = MOCK_CAMERAS;
     }
@@ -167,7 +168,7 @@ function renderCameras(container) {
       </div>
       <div class="camera-viewport">
         ${isLive ? `
-          <img src="${API_BASE}/api/cameras/${cam.id}/mjpeg" alt="${escapeHTML(cam.name)}" onerror="handleCameraStreamFallback(this, '${escapeHTML(cam.name)}')">
+          <img id="img-${cam.id}" src="${API_BASE}/api/cameras/${cam.id}/mjpeg?t=${Date.now()}" alt="${escapeHTML(cam.name)}" onerror="handleCameraStreamFallback(this, '${escapeHTML(cam.name)}')">
         ` : `
           <div class="camera-offline-placeholder">
             <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
@@ -175,14 +176,41 @@ function renderCameras(container) {
           </div>
         `}
         <div class="camera-overlay-info">
-          <span>FPS: <strong id="fps-${cam.id}">${cam.fps || 10.0}</strong></span>
+          <span>FPS: <strong id="fps-${cam.id}">${cam.fps || 0}</strong></span>
           <span>${cam.id.toUpperCase()}</span>
         </div>
+      </div>
+      <div class="camera-source-bar" style="display:flex;gap:8px;padding:8px 12px;border-top:1px solid #1e293b;align-items:center;">
+        <select id="src-${cam.id}" style="flex:1;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 8px;font-size:12px;">
+          <option value="file:videos/01_gate_pov.mp4">Demo Video 01 (Gate POV)</option>
+          <option value="file:videos/02_wrong_floor.mp4">Demo Video 02 (Wrong Floor)</option>
+          <option value="file:videos/03_shelf.mp4">Demo Video 03 (Shelf)</option>
+          <option value="webcam:0">Live Webcam (0)</option>
+          <option value="push">Phone / POV Push (/m)</option>
+        </select>
+        <button onclick="switchCameraSource('${cam.id}')" style="background:#0284c7;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-weight:600;">Switch</button>
       </div>
     `;
     container.appendChild(tile);
   });
 }
+
+window.switchCameraSource = async function(camId) {
+  const sel = document.getElementById(`src-${camId}`);
+  if (!sel) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/cameras/${camId}/source`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source: sel.value }),
+    });
+    if (res.ok) {
+      await initCameras();
+    }
+  } catch (e) {
+    console.error('Switch source failed', e);
+  }
+};
 
 window.handleCameraStreamFallback = function(imgEl, camName) {
   imgEl.onerror = null;
