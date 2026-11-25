@@ -1,0 +1,4 @@
+# Local credentials and build artifacts
+config.local.h
+include/config.local.h
+.pio/

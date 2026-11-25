@@ -1,5 +1,9 @@
 #pragma once
 
+#if __has_include("config.local.h")
+#include "config.local.h"
+#endif
+
 /**
  * Hardware and Network Configuration for ESP32-C3 Shelf-Light Beacon
  * Wiring:
@@ -9,11 +13,11 @@
  */
 
 #ifndef WIFI_SSID
-#define WIFI_SSID "Kaya-Warehouse-2.4G"
+#define WIFI_SSID "YOUR_WIFI_SSID"
 #endif
 
 #ifndef WIFI_PASS
-#define WIFI_PASS "WarehouseKey2026"
+#define WIFI_PASS "YOUR_WIFI_PASSWORD"
 #endif
 
 #ifndef SERVER_HOST

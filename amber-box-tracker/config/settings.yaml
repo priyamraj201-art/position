@@ -1,0 +1,49 @@
+# Amber Box Tracker - app settings (PRD-01 section 1.1, PRD-02 section 2.1)
+project:
+  name: "Harbor Point Medical Office (sample)"
+
+paths:
+  db: "data/app.db"
+  snapshots: "data/snapshots"
+  proof: "data/proof"
+  videos: "videos"
+  output: "output"
+  models: "models"
+
+qr:
+  payload_pattern: "^KYC1:[A-Z0-9]{6}$"
+  error_correction: "M"
+  decoder: "wechat"            # wechat -> wechat(no-args) -> QRCodeDetectorAruco
+
+aruco:
+  dictionary: "DICT_4X4_50"    # marker id N = Shelf N
+
+detector:
+  model: "yolov8s-worldv2.pt"
+  classes: ["cardboard box", "person"]
+  tracker: "bytetrack.yaml"
+  imgsz: 960
+  conf: 0.15
+  fallback_model: "yoloe-11s-seg.pt"
+  last_resort: "none"          # full-frame QR only
+
+performance:
+  fps_process: 5               # frames per second each worker processes
+  min_fps_per_camera: 5        # drop imgsz to 640 on non-aisle cams below this
+  degraded_imgsz: 640
+
+privacy:
+  head_blur_fraction: 0.35     # blur top 35% of every person bbox in snapshots
+
+rules:
+  not_arrived_minutes: 2       # demo default; 240 in production
+  check_interval_seconds: 30   # background not_arrived task cadence
+
+mobile:
+  pov_fps: 4                   # /ws/pov frames per second
+
+devices:
+  long_poll_max_seconds: 25
+
+amber:
+  provider: "auto"             # gemini | anthropic | offline; auto = key-based

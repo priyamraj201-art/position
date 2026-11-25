@@ -1,0 +1,58 @@
+{
+  "project": { "name": "Harbor Point Medical Office (sample)" },
+  "facilities": [
+    { "name": "Gate / Laydown", "level": 0 },
+    { "name": "Floor 2 Store", "level": 2 },
+    { "name": "Floor 3 Store", "level": 3 }
+  ],
+  "shelves": [
+    { "code": "L2-B1", "facility": "Floor 2 Store", "level": 2, "marker_id": 1, "light_device_id": null },
+    { "code": "L2-B2", "facility": "Floor 2 Store", "level": 2, "marker_id": 2, "light_device_id": "shelf-light-01" },
+    { "code": "L2-B3", "facility": "Floor 2 Store", "level": 2, "marker_id": 3, "light_device_id": "shelf-light-02" },
+    { "code": "L3-A1", "facility": "Floor 3 Store", "level": 3, "marker_id": 11, "light_device_id": null },
+    { "code": "L3-A2", "facility": "Floor 3 Store", "level": 3, "marker_id": 12, "light_device_id": null }
+  ],
+  "purchase_orders": [
+    {
+      "po_number": "PO-1077",
+      "supplier": "Ferguson",
+      "lines": [
+        { "line": 1, "part_number": "BV-200-SS", "description": "2in ball valve", "qty": 24 },
+        { "line": 2, "part_number": "BF-300-LUG", "description": "3in butterfly valve", "qty": 12 },
+        { "line": 3, "part_number": "YS-250", "description": "Y strainer", "qty": 6 },
+        { "line": 4, "part_number": "AHU3-DMP", "description": "AHU-3 damper kit", "qty": 4 }
+      ]
+    },
+    {
+      "po_number": "PO-1042",
+      "supplier": "Trane",
+      "lines": [
+        { "line": 1, "part_number": "CVHF-0500", "description": "chiller parts kit CH-2", "qty": 2 }
+      ]
+    }
+  ],
+  "deliveries": [
+    { "id": "DEL-2211", "event_name": "Ferguson morning drop", "po_ids": ["PO-1077"], "gate": "Main gate", "facility": "Floor 2 Store", "date": "today", "status": "expected" },
+    { "id": "DEL-2190", "event_name": "Trane chiller parts", "po_ids": ["PO-1042"], "gate": "Main gate", "facility": "Floor 3 Store", "date": "today", "status": "expected" }
+  ],
+  "cartons": [
+    { "label_code": "BV2401", "delivery_id": "DEL-2211", "po_number": "PO-1077", "po_line": 1, "part_number": "BV-200-SS", "item_name": "2in ball valve", "qty_in_carton": 12, "dest_shelf": "L2-B2" },
+    { "label_code": "BV2402", "delivery_id": "DEL-2211", "po_number": "PO-1077", "po_line": 1, "part_number": "BV-200-SS", "item_name": "2in ball valve", "qty_in_carton": 12, "dest_shelf": "L2-B2" },
+    { "label_code": "BF1201", "delivery_id": "DEL-2211", "po_number": "PO-1077", "po_line": 2, "part_number": "BF-300-LUG", "item_name": "3in butterfly valve", "qty_in_carton": 12, "dest_shelf": "L2-B1" },
+    { "label_code": "YS0601", "delivery_id": "DEL-2211", "po_number": "PO-1077", "po_line": 3, "part_number": "YS-250", "item_name": "Y strainer", "qty_in_carton": 6, "dest_shelf": "L2-B1" },
+    { "label_code": "DM0401", "delivery_id": "DEL-2211", "po_number": "PO-1077", "po_line": 4, "part_number": "AHU3-DMP", "item_name": "AHU-3 damper kit", "qty_in_carton": 2, "dest_shelf": "L2-B2" },
+    { "label_code": "DM0402", "delivery_id": "DEL-2211", "po_number": "PO-1077", "po_line": 4, "part_number": "AHU3-DMP", "item_name": "AHU-3 damper kit", "qty_in_carton": 2, "dest_shelf": "L2-B3" },
+    { "label_code": "CH0201", "delivery_id": "DEL-2190", "po_number": "PO-1042", "po_line": 1, "part_number": "CVHF-0500", "item_name": "chiller parts kit CH-2", "qty_in_carton": 1, "dest_shelf": "L3-A1" },
+    { "label_code": "CH0202", "delivery_id": "DEL-2190", "po_number": "PO-1042", "po_line": 1, "part_number": "CVHF-0500", "item_name": "chiller parts kit CH-2", "qty_in_carton": 1, "dest_shelf": "L3-A1" }
+  ],
+  "cameras": [
+    { "id": "CAM-GATE", "name": "Main gate camera", "kind": "gate", "level": 0, "facility": "Gate / Laydown", "source": "videos/01_gate_pov.mp4", "enabled": true },
+    { "id": "CAM-HOIST-3", "name": "Hoist, floor 3", "kind": "hoist", "level": 3, "facility": null, "source": "videos/02_wrong_floor.mp4", "enabled": true },
+    { "id": "CAM-AISLE-2", "name": "Aisle camera, floor 2 store", "kind": "aisle", "level": 2, "facility": "Floor 2 Store", "source": "videos/03_shelf.mp4", "enabled": true },
+    { "id": "CAM-POV", "name": "Phone / glasses POV", "kind": "pov", "level": null, "facility": null, "source": "push", "enabled": true }
+  ],
+  "shelf_lights": [
+    { "device_id": "shelf-light-01", "shelf": "L2-B2" },
+    { "device_id": "shelf-light-02", "shelf": "L2-B3" }
+  ]
+}

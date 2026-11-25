@@ -1,0 +1,15 @@
+# Amber Box Tracker - Track 1 platform
+# OpenCV: the contrib headless build is required for cv2.wechat_qrcode and
+# cv2.aruco. NEVER install opencv-python alongside it (see RULES_AND_ANTIPATTERNS).
+opencv-contrib-python-headless==4.10.0.84
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlmodel>=0.0.49
+pydantic>=2.7
+PyYAML>=6.0
+qrcode[pil]>=7.4
+reportlab>=4.2
+ultralytics>=8.3
+mcp>=1.0,<2.0  # 2.x changes the FastMCP API; re-evaluate at the SDK swap
+python-multipart>=0.0.9
+pytest>=8.0

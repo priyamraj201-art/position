@@ -1,0 +1,27 @@
+# Runtime camera sources for the vision workers (PRD-02 section 2.0).
+# Camera rows themselves are seeded into SQLite from data/seed.json;
+# this file tells each worker where that camera's frames come from.
+cameras:
+  - id: "CAM-GATE"
+    source_type: "file"        # file | rtsp | webcam | push
+    source: "videos/01_gate_pov.mp4"
+    loop: true
+    fps_process: 5
+    enabled: true
+  - id: "CAM-HOIST-3"
+    source_type: "file"
+    source: "videos/02_wrong_floor.mp4"
+    loop: true
+    fps_process: 5
+    enabled: true
+  - id: "CAM-AISLE-2"
+    source_type: "file"
+    source: "videos/03_shelf.mp4"
+    loop: true
+    fps_process: 5
+    enabled: true
+  - id: "CAM-POV"
+    source_type: "push"        # frames arrive over WS /ws/pov and /api/mobile/*
+    source: "push"
+    fps_process: 4
+    enabled: true
