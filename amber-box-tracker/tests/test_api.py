@@ -194,3 +194,10 @@ def test_pov_upload_scans_proof_and_marks_seen(client, tmp_path):
     assert body["confidence"] == 1.0
     assert "BV2401" in body["answer"]["seen"]
     assert "BV2401" not in body["answer"]["missing"]
+
+
+def test_device_commands_empty_longpoll_returns_empty(client):
+    """3.10 regression: an empty long poll must time out into [], not a 500."""
+    response = client.get("/api/devices/shelf-light-01/commands", params={"wait": 0.2})
+    assert response.status_code == 200
+    assert response.json() == {"commands": []}
