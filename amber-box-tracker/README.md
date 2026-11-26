@@ -29,11 +29,13 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --env-file .env
 Open http://localhost:8000 for the dashboard.
 
 **OpenCV rule.** The project needs `opencv-contrib-python-headless==4.10.0.84` (it has the WeChat QR
-and ArUco code). Never install `opencv-python` next to it. If `ultralytics` pulls it in, run:
+and ArUco code). Never install `opencv-python` next to it. `ultralytics` pulls it in anyway, and pip
+cannot exclude transitive deps, so `python scripts/setup.py` removes the intruder and
+force-reinstalls the pinned contrib build automatically. To fix an environment by hand:
 
 ```bash
 pip uninstall -y opencv-python opencv-python-headless
-pip install --force-reinstall opencv-contrib-python-headless==4.10.0.84
+pip install --force-reinstall --no-deps opencv-contrib-python-headless==4.10.0.84
 ```
 
 **Amber keys (optional).** Put `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` in `.env`. The app does not read `.env` itself, so start
