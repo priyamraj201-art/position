@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initReceive();
   initFindAndGrid();
   initSSEAlerts();
+  initGridStatePolling();
 });
 
 // Live Clock
@@ -230,7 +231,7 @@ async function initAlerts() {
     const res = await fetch(`${API_BASE}/api/alerts`);
     if (res.ok) {
       const data = await res.json();
-      appState.alerts = Array.isArray(data) ? data : localAlerts;
+      appState.alerts = Array.isArray(data) ? data : (data.alerts || localAlerts);
     } else {
       appState.alerts = localAlerts;
     }
@@ -422,7 +423,8 @@ async function initCartons() {
   try {
     const res = await fetch(`${API_BASE}/api/cartons`);
     if (res.ok) {
-      appState.cartons = await res.json();
+      const data = await res.json();
+      appState.cartons = Array.isArray(data) ? data : (data.cartons || MOCK_CARTONS);
     } else {
       appState.cartons = MOCK_CARTONS;
     }
@@ -467,14 +469,20 @@ function renderCartonsTable(cartons) {
       'damaged': 'danger'
     };
     const pillClass = statusMap[c.status] || 'warning';
+    const shelfCode = c.dest_shelf || c.dest_shelf_code || 'TBD';
+    const lastSeen = c.last_seen_shelf
+      ? `${c.last_seen_shelf} (${c.last_seen_at || 'Just now'})`
+      : (c.last_seen_camera
+          ? `${c.last_seen_camera} (${c.last_seen_at || 'Just now'})`
+          : (c.last_seen_at || 'N/A'));
 
     tr.innerHTML = `
       <td class="code-cell">${escapeHTML(c.label_code)}</td>
       <td><strong>${escapeHTML(c.item_name)}</strong></td>
       <td style="font-family: var(--font-mono); color: var(--text-muted);">${escapeHTML(c.po_number || 'N/A')}</td>
-      <td>Floor ${c.dest_level} · <strong style="color: var(--color-blue);">${escapeHTML(c.dest_shelf_code || 'TBD')}</strong></td>
+      <td>Floor ${c.dest_level} · <strong style="color: var(--color-blue);">${escapeHTML(shelfCode)}</strong></td>
       <td><span class="status-pill ${pillClass}">${c.status}</span></td>
-      <td>${escapeHTML(c.last_seen_camera || 'N/A')} (${escapeHTML(c.last_seen_at || 'Just now')})</td>
+      <td>${escapeHTML(lastSeen)}</td>
       <td>
         <button class="btn btn-outline btn-sm" onclick="openCartonTimeline('${c.label_code}')">Timeline</button>
       </td>
@@ -496,7 +504,8 @@ window.openCartonTimeline = async function(code) {
   try {
     const res = await fetch(`${API_BASE}/api/cartons/${code}/timeline`);
     if (res.ok) {
-      sightings = await res.json();
+      const data = await res.json();
+      sightings = Array.isArray(data) ? data : (data.sightings || []);
     }
   } catch (e) {}
 
@@ -515,18 +524,22 @@ window.openCartonTimeline = async function(code) {
     const isLast = idx === sightings.length - 1;
     const step = document.createElement('div');
     step.className = `timeline-step ${isLast ? 'completed' : ''}`;
+    const cam = s.camera_name || s.camera_id || 'Camera Sighting';
+    const shelf = s.shelf || s.shelf_id || '';
+    const snap = s.snapshot_path || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><rect width="200" height="120" fill="%231e293b"/><text x="100" y="65" fill="%2394a3b8" font-family="sans-serif" font-size="14" text-anchor="middle">Sighting Frame</text></svg>';
+
     step.innerHTML = `
       <div class="timeline-step-dot"></div>
       <div class="timeline-card">
-        <img src="${s.snapshot_path}" class="timeline-img" alt="Sighting Frame">
+        <img src="${snap}" class="timeline-img" alt="Sighting Frame">
         <div style="flex: 1;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <strong style="font-size: 14px; color: var(--text-main);">${escapeHTML(s.camera_name)}</strong>
-            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);">${escapeHTML(s.seen_at)}</span>
+            <strong style="font-size: 14px; color: var(--text-main);">${escapeHTML(cam)}</strong>
+            <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);">${escapeHTML(s.seen_at || 'Just now')}</span>
           </div>
           <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
-            Floor: <strong>${s.level}</strong> ${s.shelf ? `· Shelf: <strong style="color: var(--color-blue);">${s.shelf}</strong>` : ''}<br>
-            Detection Source: <span style="text-transform: uppercase; font-size: 11px; background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">${s.source}</span>
+            Floor: <strong>${s.level || 1}</strong> ${shelf ? `· Shelf: <strong style="color: var(--color-blue);">${escapeHTML(shelf)}</strong>` : ''}<br>
+            Detection Source: <span style="text-transform: uppercase; font-size: 11px; background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px;">${escapeHTML(s.source || 'cctv')}</span>
           </div>
         </div>
       </div>
@@ -559,7 +572,7 @@ async function initReceive() {
   appState.deliveries.forEach(d => {
     const opt = document.createElement('option');
     opt.value = d.id;
-    opt.textContent = `${d.id} — ${d.event_name}`;
+    opt.textContent = `${d.id} — ${d.event_name || 'Delivery'}`;
     select.appendChild(opt);
   });
 
@@ -601,30 +614,32 @@ function updateReceiveView() {
 
   const metaCard = document.getElementById('deliveryMetaCard');
   metaCard.innerHTML = `
-    <div>Supplier: <strong style="color: var(--text-main);">${escapeHTML(current.supplier || 'N/A')}</strong></div>
-    <div>Date: <strong style="color: var(--text-main);">${escapeHTML(current.date)}</strong></div>
-    <div>Gate: <strong style="color: var(--text-main);">${escapeHTML(current.gate)}</strong></div>
+    <div>Supplier: <strong style="color: var(--text-main);">${escapeHTML(current.supplier || 'Scheduled Intake')}</strong></div>
+    <div>Date: <strong style="color: var(--text-main);">${escapeHTML(current.date || 'Today')}</strong></div>
+    <div>Gate: <strong style="color: var(--text-main);">${escapeHTML(current.gate || 'Gate 1 North')}</strong></div>
     <div>Intake Status: <span class="status-pill ${current.status === 'received' ? 'success' : 'warning'}" style="font-size: 11px; padding: 2px 6px;">${current.status}</span></div>
   `;
 
-  document.getElementById('manifestSummaryBadge').textContent = `${(current.cartons || []).length} Cartons Expected`;
+  const cartonsList = current.expected || current.cartons || [];
+  document.getElementById('manifestSummaryBadge').textContent = `${cartonsList.length} Cartons Expected`;
 
   const tbody = document.getElementById('receiveManifestBody');
   tbody.innerHTML = '';
-  (current.cartons || []).forEach(code => {
+  cartonsList.forEach(code => {
     const carton = appState.cartons.find(c => c.label_code === code) || {
       label_code: code,
       item_name: 'Scheduled Inventory Carton',
       dest_level: 2,
-      dest_shelf_code: 'L2-B2',
-      status: 'pending'
+      dest_shelf: 'L2-B2',
+      status: (current.seen && current.seen.includes(code)) ? 'received' : 'pending'
     };
+    const shelfCode = carton.dest_shelf || carton.dest_shelf_code || 'TBD';
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="code-cell">${carton.label_code}</td>
+      <td class="code-cell">${escapeHTML(carton.label_code)}</td>
       <td>${escapeHTML(carton.item_name)}</td>
-      <td>Floor ${carton.dest_level} · <strong style="color: var(--color-blue);">${carton.dest_shelf_code}</strong></td>
+      <td>Floor ${carton.dest_level} · <strong style="color: var(--color-blue);">${escapeHTML(shelfCode)}</strong></td>
       <td><span class="status-pill ${carton.status === 'stored' ? 'success' : 'warning'}">${carton.status}</span></td>
     `;
     tbody.appendChild(tr);
@@ -709,7 +724,12 @@ async function executeFind(query) {
   try {
     const res = await fetch(`${API_BASE}/api/find?q=${encodeURIComponent(query)}`);
     if (res.ok) {
-      results = await res.json();
+      const data = await res.json();
+      if (data && data.answer && Array.isArray(data.answer.matches)) {
+        results = data.answer.matches;
+      } else if (Array.isArray(data)) {
+        results = data;
+      }
     }
   } catch (e) {}
 
@@ -735,6 +755,8 @@ async function executeFind(query) {
     card.style.flexDirection = 'column';
     card.style.gap = '10px';
 
+    const shelf = item.dest_shelf || item.dest_shelf_code || 'TBD';
+
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
@@ -744,10 +766,10 @@ async function executeFind(query) {
         <span class="status-pill ${item.status === 'stored' ? 'success' : 'warning'}">${item.status}</span>
       </div>
       <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
-        Destination: <strong>Floor ${item.dest_level} · Shelf ${item.dest_shelf_code}</strong><br>
+        Destination: <strong>Floor ${item.dest_level} · Shelf ${escapeHTML(shelf)}</strong><br>
         Last Seen: ${escapeHTML(item.last_seen_camera || 'Gate')} (${escapeHTML(item.last_seen_at || 'Recently')})
       </div>
-      <button class="btn btn-primary" onclick="locateCarton('${item.label_code}', '${item.dest_shelf_code}')">
+      <button class="btn btn-primary" onclick="locateCarton('${item.label_code}', '${shelf}')">
         💡 Light It Up (Blink Shelf)
       </button>
     `;
@@ -945,4 +967,31 @@ function escapeHTML(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// Live Shelf Grid Polling (Track 1 /api/devices/grid-state)
+function initGridStatePolling() {
+  const poll = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/devices/grid-state`);
+      if (res.ok) {
+        const data = await res.json();
+        const shelves = data.shelves || {};
+        for (const [shelfCode, info] of Object.entries(shelves)) {
+          if (info && info.active) {
+            const cmd = info.active.cmd;
+            const stateMap = {
+              'blink': 'pulse-blue',
+              'blink_red': 'pulse-red',
+              'ack': 'flash-green',
+              'off': 'off'
+            };
+            setVirtualShelfState(shelfCode, stateMap[cmd] || 'pulse-blue', info.active.seconds || 20);
+          }
+        }
+      }
+    } catch (e) {}
+  };
+  poll();
+  setInterval(poll, 3000);
 }
