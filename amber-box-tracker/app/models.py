@@ -18,6 +18,14 @@ from sqlmodel import Field, SQLModel
 # SQLite round-trips inconsistently).
 
 
+QR_PREFIX = "KYC1:"
+
+
+def strip_qr_prefix(code: str) -> str:
+    """Boundary rule: QR payloads are KYC1:<6 chars>; stored labels are bare."""
+    return code.strip().upper().removeprefix(QR_PREFIX)
+
+
 def utcnow() -> datetime:
     """Naive UTC now - every app timestamp is naive UTC by convention."""
     return datetime.now(timezone.utc).replace(tzinfo=None)  # noqa: UP017 - py310-safe

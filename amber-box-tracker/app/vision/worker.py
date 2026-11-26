@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 from sqlmodel import Session, select
 
-from app.models import Camera, Carton, Shelf, utcnow
+from app.models import QR_PREFIX, Camera, Carton, Shelf, strip_qr_prefix, utcnow
 from app.rules import record_sighting
 from app.vision.pipeline import CameraContext, VisionPipeline
 from app.vision.sources import FrameSource, PushSource, build_source
@@ -105,7 +105,7 @@ class CameraWorker:
 
             cartons = session.exec(select(Carton)).all()
             carton_dests = {
-                c.label_code: {
+                f"{QR_PREFIX}{c.label_code}": {
                     "dest_level": c.dest_level,
                     "dest_shelf": shelf_id_to_code.get(c.dest_shelf_id, "?"),
                 }
@@ -158,7 +158,9 @@ class CameraWorker:
             if cam is None:
                 return
             for s in sightings:
-                carton = session.exec(select(Carton).where(Carton.label_code == s.carton_code)).first()
+                carton = session.exec(
+                    select(Carton).where(Carton.label_code == strip_qr_prefix(s.carton_code))
+                ).first()
                 if carton is None:
                     continue
                 shelf_id = shelf_code_to_id.get(s.shelf_code) if s.shelf_code else None

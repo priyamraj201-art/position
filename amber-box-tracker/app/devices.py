@@ -104,7 +104,7 @@ async def wait_commands(
             break
         try:
             await asyncio.wait_for(event.wait(), timeout=remaining)
-        except TimeoutError:
+        except asyncio.TimeoutError:  # noqa: UP041 - builtin alias only exists on 3.11+; 3.10 raises this one
             break
         if _queues.get(device_id):
             return _drain(device_id)
