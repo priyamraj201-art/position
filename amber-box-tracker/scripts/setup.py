@@ -9,8 +9,10 @@ cv2.QRCodeDetectorAruco().
 """
 from __future__ import annotations
 
+import subprocess
 import sys
 import urllib.request
+from importlib import metadata
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +29,48 @@ WECHAT_FILES = [
 ]
 
 DIRS = ["data", "data/snapshots", "data/proof", "models/wechat", "videos", "output"]
+
+
+def enforce_opencv_rule() -> None:
+    """Ultralytics depends on opencv-python, which then shadows the pinned
+    opencv-contrib-python-headless build (repo rule: never both - the contrib
+    build alone carries cv2.wechat_qrcode). Pip cannot exclude transitive
+    deps, so remove the intruders after install and verify the contrib build.
+    """
+    intruders = []
+    for dist in ("opencv-python", "opencv-python-headless"):
+        try:
+            metadata.version(dist)
+        except metadata.PackageNotFoundError:
+            continue
+        intruders.append(dist)
+    if not intruders:
+        print("[setup] opencv rule OK: only the contrib headless build is installed")
+        return
+    # The intruder's files shadow/replace contrib's, so removing it leaves cv2
+    # broken: force-reinstall the pinned contrib build afterwards.
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "uninstall", "-y", *intruders], check=True
+        )
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps",
+             "opencv-contrib-python-headless==4.10.0.84"], check=True
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        subprocess.run(["uv", "pip", "uninstall", *intruders], check=True)
+        subprocess.run(
+            ["uv", "pip", "install", "--reinstall-package",
+             "opencv-contrib-python-headless", "--no-deps",
+             "opencv-contrib-python-headless==4.10.0.84"], check=True
+        )
+    import cv2
+
+    assert hasattr(cv2, "wechat_qrcode_WeChatQRCode"), (
+        "cv2.wechat_qrcode missing after cleanup - reinstall "
+        "opencv-contrib-python-headless==4.10.0.84"
+    )
+    print("[setup] removed", ", ".join(intruders), "- contrib headless build verified")
 
 
 def ensure_dirs() -> None:

@@ -10,7 +10,7 @@
   "scripts": {
     "setup": "npm install && uv sync",
     "dev": "concurrently -n \"API,WEB\" -c \"blue,green\" \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:api": "cd apps/api && uv run uvicorn src.main:app --reload --port 8000",
+    "dev:api": "cd apps/api && uv run uvicorn src.api.main:app --reload --port 8000",
     "dev:web": "npm run --workspace=@repo/web dev",
     "build": "npm run --workspace=@repo/web build",
     "test": "npm run test:api && npm run test:web",
