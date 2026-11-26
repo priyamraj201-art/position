@@ -86,7 +86,7 @@ async def _not_arrived_loop(stop: asyncio.Event) -> None:
             log.exception("not_arrived check failed")
         try:
             await asyncio.wait_for(stop.wait(), timeout=interval)
-        except TimeoutError:
+        except asyncio.TimeoutError:  # noqa: UP041 - builtin alias only exists on 3.11+
             pass
 
 

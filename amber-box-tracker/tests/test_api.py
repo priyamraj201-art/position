@@ -201,3 +201,28 @@ def test_device_commands_empty_longpoll_returns_empty(client):
     response = client.get("/api/devices/shelf-light-01/commands", params={"wait": 0.2})
     assert response.status_code == 200
     assert response.json() == {"commands": []}
+
+
+def test_not_arrived_loop_survives_wait_timeouts(tmp_path, monkeypatch):
+    """3.10 regression: the background not_arrived loop must not die when its
+    interval wait times out (asyncio.TimeoutError != TimeoutError on 3.10)."""
+    import asyncio
+
+    import app.db as db_module
+    import app.main as main_module
+
+    db_module._engine = None
+    monkeypatch.setattr(db_module, "DB_PATH", tmp_path / "loop.db")
+    settings = main_module.get_settings()
+    monkeypatch.setitem(settings["rules"], "check_interval_seconds", 0)
+    monkeypatch.setitem(settings["rules"], "not_arrived_minutes", 0)
+
+    async def run():
+        stop = asyncio.Event()
+        task = asyncio.create_task(main_module._not_arrived_loop(stop))
+        await asyncio.sleep(0.1)
+        assert not task.done(), f"loop died: {task.exception()}"
+        stop.set()
+        await asyncio.wait_for(task, timeout=1)
+
+    asyncio.run(run())
