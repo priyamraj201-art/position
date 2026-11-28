@@ -9,7 +9,7 @@ from typing import Any
 from app.amber.provider import SYSTEM_PROMPT, AmberProvider, ChatResult, run_tool
 from app.amber.tools import AmberStore
 
-DEFAULT_MODEL = "gemini-2.0-flash"
+DEFAULT_MODEL = "gemini-3.8-flash"
 
 
 class GeminiProvider(AmberProvider):
