@@ -58,11 +58,16 @@ def enforce_opencv_rule() -> None:
              "opencv-contrib-python-headless==4.10.0.84"], check=True
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
-        subprocess.run(["uv", "pip", "uninstall", *intruders], check=True)
+        # uv-managed envs may have no pip; target this interpreter explicitly.
         subprocess.run(
-            ["uv", "pip", "install", "--reinstall-package",
-             "opencv-contrib-python-headless", "--no-deps",
-             "opencv-contrib-python-headless==4.10.0.84"], check=True
+            ["uv", "pip", "uninstall", "--python", sys.executable, *intruders],
+            check=True,
+        )
+        subprocess.run(
+            ["uv", "pip", "install", "--python", sys.executable,
+             "--reinstall-package", "opencv-contrib-python-headless",
+             "--no-deps", "opencv-contrib-python-headless==4.10.0.84"],
+            check=True,
         )
     import cv2
 
@@ -131,6 +136,7 @@ def print_summary() -> None:
 
 if __name__ == "__main__":
     ensure_dirs()
+    enforce_opencv_rule()
     download_wechat_weights()
     init_database()
     print_summary()
